@@ -1,0 +1,47 @@
+     1	20:57	cd zzz.github/DOCK3/DOCK/ligand/
+     3	20:58	cp mol2db2 mol2db2_py3 -r
+     4	20:58	cd mol2db2_py3/
+     6	21:03	vim README.md
+     8	21:04	rm -rf unionfind2.py
+     9	21:04	cp ../../common/unionfind2.py .
+    10	21:04	rm -rf pca.py
+    11	21:04	cp ../../common/pca.py
+    12	21:04	cp ../../common/pca.py .
+    14	21:04	rm -rf shortestpaths.py
+    15	21:05	cp ../../common/shortestpaths.py .
+    16	21:05	rm -rf sybyl2dock.py
+    17	21:05	cp ../../common/sybyl2dock.py .
+    18	21:05	rm -rf atom_color_table.py
+    19	21:05	cp ../../common/atom_color_table.py .
+    20	21:05	rm -rf combinatorics.py
+    22	21:06	rm -rf mol2.py
+    23	21:06	cp ../../common/mol2.py .
+    24	21:06	rm -rf priodict.py geometry.py buckets.py floydwarshall.py divisive_clustering.py
+    25	21:06	cp ../../common/combinatorics.py .
+    26	21:07	cp ../../common/priodict.py .
+    27	21:07	cp ../../common/geometry.py .
+    28	21:07	cp ../../common/buckets.py .
+    29	21:07	cp ../../common/floydwarshall.py .
+    30	21:07	cp ../../common/divisive_clustering.py .
+    32	21:08	ls *.py
+    33	21:08	vim atom_color_table.pyc
+    34	21:08	rm -rf *.pyc
+    36	21:10	conda activate oepython
+    37	21:10	cat /nfs/soft/openeye/license.csh
+    38	21:11	setenv OE_LICENSE /nfs/soft/openeye/oe_license.txt
+    40	21:12	2to3-3.7 -w mol2db2.py
+    43	21:15	ls -ltrh
+    44	21:16	vim mol2db2.py
+    46	21:17	2to3-3.7 sybyl2dock.py
+    47	21:17	vim sybyl2dock.py
+    48	21:18	foreach py_file ( `ls *.py` )
+    49	21:23	grep "string.find" *.py
+    50	21:29	vim atom_color_table.py
+    55	21:41	ls -tlrh
+    56	21:42	vim geometry.py
+    57	21:45	conda deactivate
+    58	21:45	conda create -n lig_build_py3-3.7 -c openeye openeye-toolkits
+    59	21:48	conda activate lig_build_py3-3.7
+    60	21:49	conda install -c anaconda numpy
+    61	21:52	history
+    62	21:52	history > README_working
