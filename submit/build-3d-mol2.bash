@@ -4,76 +4,88 @@
 # req: SGE_TASK_ID // SLURM_ARRAY_TASK_ID
 # req: INPUT
 # req: OUTPUT
+# req: LOGGING
 # req: SHRTCACHE
 # req: LONGCACHE
 
 # opt: WORK_DIR
 cwd=$PWD
 export SOFT_HOME=${SOFT_HOME-$HOME}
-export SHRTCACHE=${SHRTCACHE-/tmp}
-export LONGCACHE=${LONGCACHE-/tmp}
-export COMMON_DIR=$LONGCACHE/build_3d_common_$(whoami)
-#export COMMON_DIR=$LONGCACHE/build_3d_common/
+export BUILD_DIR=3dbuild_$(whoami)
+export SHRTCACHE=${SHRTCACHE-/scratch}
+export LONGCACHE=${LONGCACHE-/scratch}
+export WORK_DIR=$SHRTCACHE/$BUILD_DIR
+export COMMON_DIR=$LONGCACHE/build_3d_common
 
-# don't set default version in here- do it in submit-all.bash
-export DOCK_VERSION=${DOCK_VERSION}
-export CORINA_VERSION=${CORINA_VERSION}
-export PYENV_VERSION=${PYENV_VERSION}
-export JCHEM_VERSION=${JCHEM_VERSION}
-export OPENBABEL_VERSION=${OPENBABEL_VERSION}
-export EXTRALIBS_VERSION=${EXTRALIBS_VERSION}
+export DOCK_VERSION=${DOCK_VERSION-DOCK.3.8.4.2.3d}
+export CORINA_VERSION=${CORINA_VERSION-corina-2025}
+export PYENV_VERSION=${PYENV_VERSION-lig_build_py3-3.7.1}
+export JCHEM_VERSION=${JCHEM_VERSION-jchem-19.15.r0}
 
 export PYTHONBASE=$COMMON_DIR/$PYENV_VERSION
 export DOCKBASE=$COMMON_DIR/${DOCK_VERSION}
-
-failed=
-for required_var in INPUT OUTPUT DOCK_VERSION CORINA_VERSION PYENV_VERSION JCHEM_VERSION OPENBABEL_VERSION EXTRALIBS_VERSION; do
-	if [ -z ${!required_var} ]; then
-		echo "missing $required_var!" 1>&2
-		failed=1
-	fi
-done
-! [ -z $failed ] && exit 1
 
 if [ -f $SOFT_HOME/soft/${DOCK_VERSION}.tar.gz ]; then
 	SOFT_HOME=$SOFT_HOME/soft
 fi
 
-#if ! [ -d $COMMON_DIR ]; then
-#        mkdir -p $COMMON_DIR
-#        chmod 777 $COMMON_DIR
-#fi
-
-mkdir -p $COMMON_DIR
-chmod 777 $COMMON_DIR
+if ! [ -d $COMMON_DIR ]; then
+        mkdir -p $COMMON_DIR
+        chmod 777 $COMMON_DIR
+fi
 
 JOB_ID=${SLURM_ARRAY_JOB_ID-$JOB_ID}
 TASK_ID=${SLURM_ARRAY_TASK_ID-$SGE_TASK_ID}
 
-[ -z $TASK_ID ] && echo "missing TASK_ID!" 1>&2 && exit 1
-function log {
-    echo "[build-3d $(date +%X)]: $@"
-}
+mkdir -p $WORK_DIR
+
+# any jobs that were cancelled previously should be cleaned up
+old_work=$(find $WORK_DIR -mindepth 1 -maxdepth 1 -user $(whoami) -mmin +180 -name '*.build-3d.d' | wc -l)
+old_logs=$(find $SHRTCACHE -mindepth 1 -maxdepth 1 -user $(whoami) -mmin +180 -name '*batch_3d*.???' | wc -l)
+
+# to properly synchronize work done by multiple threads we need to do a couple things
+# 1. we need a long-term flag to mark the work as completed/not completed
+#    a. In the case of removing old files, this "flag" might be as simple as there no longer being old files present
+#    b. In the case of an install/extract operation, this would be a ".done" file in the install directory
+# 2. local synchronization
+#    a. It doesn't serve us well to have multiple threads trying to extract/remove the same file at the same time
+#       To prevent this it helps to use a flock lock to ensure that only one process can work on the task at a time
+#    b. In the case of an install operation, we might not want other threads to continue until the first thread is done
+#       with it's work. In this case, we need to have a temporary "done" flag for the first thread to signal the
+#       other waiting threads that it's okay to move on, which is what I do in the synchronize_all_but_first function
+
 function extract_cmd {
-	log "extracting $1"
 	tar -C $COMMON_DIR -xzf $SOFT_HOME/$1.tar.gz && echo > $COMMON_DIR/$1/.done
 }
 
 # added an additional check to make sure software dir isn't empty, since this seems to have happened before
-# "lib" is a bandaid to fix some libraries that weren't found- can probably include most of it with openbabel-install
-for software in $DOCK_VERSION $PYENV_VERSION $EXTRALIBS_VERSION $OPENBABEL_VERSION $JCHEM_VERSION $CORINA_VERSION $EXTRALIBS_VERSION; do
+for software in $DOCK_VERSION $PYENV_VERSION lib openbabel-install $JCHEM_VERSION $CORINA_VERSION; do
 	(
 		flock -x 9
 		if ! [ -f $COMMON_DIR/$software/.done ] || [ $(ls $COMMON_DIR/$software | wc -l) -eq 0 ]; then
 			extract_cmd $software
 		fi
 		flock -u 9
-	)9>$COMMON_DIR/install_${software}.lock
+	)9>/dev/shm/3d_install_${software}_${USER}.lock
+
 done
+
+if [ $old_work -gt 0 ] || [ $old_logs -gt 0 ]; then
+	(
+		flock -x 9
+		find $SHRTCACHE -mindepth 1 -maxdepth 1 -user $(whoami) -mmin +180 -name '*batch_3d*.???' | xargs rm -r
+		find $WORK_DIR -mindepth 1 -maxdepth 1 -user $(whoami) -mmin +120 -name '*.build-3d.d' | xargs rm -r
+		flock -u 9
+	)9>/dev/shm/rm_old_${USER}.lock
+fi
+
+function log {
+    echo "[build-3d $(date +%X)]: $@"
+}
 
 log $(hostname)
 
-WORK_BASE=$SHRTCACHE/$(whoami)_build3d/${JOB_ID}/${TASK_ID}
+WORK_BASE=$WORK_DIR/${JOB_ID}_${TASK_ID}.build-3d.d
 mkdir -p $WORK_BASE
 
 if [ -z $RESUBMIT ]; then
@@ -88,17 +100,17 @@ cp $SPLIT_FILE $TARGET_FILE
 log SPLIT_FILE=$SPLIT_FILE
 cd $WORK_BASE
 
-log PATH=$PATH
 log $(hostname)
 log "starting build job on $TARGET_FILE"
 log "len($TARGET_FILE)=$(cat $TARGET_FILE | wc -l)"
 
 # move logs to their final destination & clean up the working directory
 cleanup() {
+        #mv $ERROR_LOG $LOGGING/$(basename $TARGET_FILE).err
+        #mv $OUTPUT_LOG $LOGGING/$(basename $TARGET_FILE).out
         if [ -z $SKIP_DELETE ] && [ -d $WORK_BASE ]; then rm -r $WORK_BASE; fi
+        exit $1
 }
-
-trap cleanup EXIT
 
 # save our progress if we've reached the time limit. DOCK has not been modified to take advantage of this, so this doesn't do much as of yet
 # but this will be useful for re-doing as little work as possible in the future
@@ -131,9 +143,7 @@ fi
 
 ##### start initialize environment. Moving this from env_new_lig_build.sh to here so everything fits in one file
 
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$COMMON_DIR/$OPENBABEL_VERSION/lib
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$COMMON_DIR/$EXTRALIBS_VERSION
-log LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$COMMON_DIR/lib
 
 #export AMSOLEXE=$SOFTBASE/amsol/in-house/amsol7.1-colinear-fix/amsol7.1
 
@@ -141,16 +151,16 @@ log LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 export EMBED_PROTOMERS_3D_EXE=$DOCKBASE/ligand/3D/embed3d_corina.sh
 # parameters related to omega
 # set omega energy window, if it equals 0, rotatable-bond-dependent window method.
-export OMEGA_ENERGY_WINDOW=${OMEGA_ENERGY_WINDOW-12}
+export OMEGA_ENERGY_WINDOW=12
 # set omega max number of confs, if it equals 0, rotatable-bond-dependent window method.
-export OMEGA_MAX_CONFS=${OMEGA_MAX_CONFS-600}
+export OMEGA_MAX_CONFS=600
 # set the omega torsion library: 1) Original; 2) GubaV21
-export OMEGA_TORLIB=${OMEGA_TORLIB-Original}
+export OMEGA_TORLIB=Original
 # set the omega force field. Options are in the link below
 # https://docs.eyesopen.com/toolkits/cpp/oefftk/OEFFConstants/OEMMFFSheffieldFFType.html#OEFF::OEMMFFSheffieldFFType::MMFF94Smod
-export OMEGA_FF=${OMEGA_FF-MMFF94Smod}
+export OMEGA_FF=MMFF94Smod
 # set the omega rmsd for clustering and filtering conformations, if it equals 0, rotatable-bond-dependent window method.
-export OMEGA_RMSD=${OMEGA_RMSD-0.5}
+export OMEGA_RMSD=0.5
 
 # Dependencies
 
@@ -158,20 +168,16 @@ export OMEGA_RMSD=${OMEGA_RMSD-0.5}
 export PATH="$COMMON_DIR/$CORINA_VERSION:${PATH}"
 
 # so does openbabel
-export OBABELBASE=$COMMON_DIR/$OPENBABEL_VERSION
-OB_VER=$(echo $OPENBABEL_VERSION | cut -d'-' -f2-)
-export BABEL_LIBDIR=$COMMON_DIR/$OPENBABEL_VERSION/lib/openbabel/$OB_VER
-export BABEL_DATADIR=$COMMON_DIR/$OPENBABEL_VERSION/share/openbabel/$OB_VER
+export OBABELBASE=$COMMON_DIR/openbabel-install
+export BABEL_LIBDIR=$COMMON_DIR/lib/openbabel/2.3.1
+export BABEL_DATADIR=$COMMON_DIR/openbabel-install/share/openbabel/2.3.1
 export PATH="${PATH}:${OBABELBASE}/bin"
-
-
 
 # aaand jchem too. all the software
 # activate the openeye license
-LICENSE_HOME=${LICENSE_HOME-$SOFT_HOME}
-export OE_LICENSE=$LICENSE_HOME/.oe-license.txt
+export OE_LICENSE=$SOFT_HOME/.oe-license.txt
 export CHEMAXON_PATH=$COMMON_DIR/$JCHEM_VERSION
-export CHEMAXON_LICENSE_URL=$LICENSE_HOME/.jchem-license.cxl
+export CHEMAXON_LICENSE_URL=$SOFT_HOME/.jchem-license.cxl
 export PATH="$PATH:$CHEMAXON_PATH/bin"
 
 LIMIT_JAVA="${DOCKBASE}/common/java-thread-limiter/mock-num-cpus 2"
@@ -182,25 +188,15 @@ export PATH="${PATH}:${DOCKBASE}/bin"
 # activate python environment
 source $PYTHONBASE/bin/activate
 
-log $(which python) ::: $(which python3) :::
-
 ##### end initialize environment 
 
+dsave=$PWD
 #source $cwd/env_new_lig_build.sh
 # export DEBUG=TRUE
 # this env variable used for debugging old versions only
-if ! [ $BUILD_MOL2 = "true" ]; then
-	MAIN_SCRIPT_NAME=${MAIN_SCRIPT_NAME-build_database_ligand_strain_noH_btingle.sh}
-	${DOCKBASE}/ligand/generate/$MAIN_SCRIPT_NAME -H 7.4 --no-db $(basename $TARGET_FILE) &
-	genpid=$!
-else
-	mkdir working
-	cd working
-	MAIN_SCRIPT_NAME=${MAIN_SCRIPT_NAME-build_ligands_from_mol2.py}
-	python ${DOCKBASE}/ligand/generate/$MAIN_SCRIPT_NAME $(cat $TARGET_FILE) &
-	genpid=$!
-	cd ..
-fi
+MAIN_SCRIPT_NAME=${MAIN_SCRIPT_NAME-build_ligands_from_mol2.py}
+python ${DOCKBASE}/ligand/generate/$MAIN_SCRIPT_NAME $(cat $TARGET_FILE) &
+genpid=$!
 
 function signal_generate_ligands {
         received_sigusr=TRUE
@@ -219,5 +215,5 @@ fi
 
 log "finished build job on $TARGET_FILE"
 
-mv working/output.tar.gz $OUTPUT/$(basename $TARGET_FILE).tar.gz
-exit 0
+mv output.tar.gz $OUTPUT/$(basename $TARGET_FILE).tar.gz
+cleanup 0

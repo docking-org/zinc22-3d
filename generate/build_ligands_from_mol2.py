@@ -8,6 +8,7 @@ import io
 import openbabel
 import time
 import signal
+import hashlib
 from openeye import oechem
 
 DOCKBASE='/'.join(__file__.split("/")[0:-3])
@@ -19,117 +20,12 @@ from mol2 import Mol2
 from hydrogens import count_hydrogens
 from mol2db2 import mol2db2_quick
 from Torsion_Strain import calc_strain
-from TL_Functions import Mol2MolSupplier_noF
+from TL_Functions import Mol2MolSupplier_noF, Mol2MolSupplier
 from omega import generate_conformations
 
-# read in protomers
-protomers = sys.argv[1]
-protonated_flat = []
-with open(protomers) as prot_f:
-    for line in prot_f:
-        smiles, name, prot_id = line.split()
-        protonated_flat.append((name + "." + str(prot_id), smiles, int(prot_id)))
-
-# sort the protonated list for the next step
-protonated_flat = sorted(protonated_flat, key=lambda x:x[0])
-
-# when protomers get expanded, expanded protomers will not be assigned a unique id
-# e.g if a new protomer was expanded from ZINC123.1, the new protomer will still be named ZINC123.1
-# we fix this here
-protomers_aug = open(os.path.dirname(protomers) + "/protomers_in_corina", 'w')
-name_prev = None
-protonated_flat_aug = []
-for protomer in protonated_flat:
-    name = protomer[0]
-    if name_prev == name:
-        protid = int(name.split('.')[-1])
-        name = '.'.join(name.split('.')[:-1] + [str(protid + 1)])
-        protomers_aug.write(protomer[1] + " " + name + "\n")
-        protonated_flat_aug.append((name, protomer[1], protid + 1))
-        name_prev = name
-    else:
-        protomers_aug.write(protomer[1] + " " + name + "\n")
-        protonated_flat_aug.append(protomer)
-        name_prev = name
-        dup_protid_cnt = 0
-protomers_aug.close()
-protonated_flat = protonated_flat_aug
-
 # initialize working directories
-subprocess.call(["mkdir", "3d"])
 subprocess.call(["mkdir", "solv"])
-
-# read in number of corina conformations to (attempt to) generate per protomer
-if not os.environ.get("CORINA_MAX_CONFS"):
-    os.environ["CORINA_MAX_CONFS"] = "1"
-corinaconfs = int(os.environ["CORINA_MAX_CONFS"])
-
-# create 3d embeddings for protomers
-subprocess.call([DOCKBASE + "/ligand/3D/embed3d_corina.sh", protomers_aug.name, "-o", "3d/"])
-# remove size zero files created by spliton.py (not sure why it does this)
-with subprocess.Popen(["find", "3d", "-size", "0"], stdout=subprocess.PIPE) as proc:
-    subprocess.call(["xargs", "rm"], stdin=proc.stdout)
-
-# find the names of every mol that succeeded corina 3d embedding
-corina_success = []
-for mol2fn in os.listdir("3d"):
-    with subprocess.Popen(["awk", "{if (NR == 2) print $0}", "3d/" + mol2fn], stdout=subprocess.PIPE) as proc:
-        mol_name = proc.stdout.read().strip().decode('utf-8')
-        corina_success.append((mol_name, mol2fn))
-# sort the list by mol number so that it lines up with the list of protonated mols
-corina_success = sorted(corina_success, key=lambda x:int(x[1]))
-
-# rewrites the name of a mol2, only used when CORINA_CONFS > 1 to denote different corina conformations
-def rewrite_mol2_name(mol2fn, name):
-    mol2_f = open(mol2fn, 'r')
-    mol2_t = open(mol2fn + '.t', 'w')
-    i = 0
-    for line in mol2_f:
-        i += 1
-        if i == 2:
-            mol2_t.write(name + '\n')
-        else:
-            mol2_t.write(line)
-    mol2_f.close()
-    mol2_t.close()
-    os.rename(mol2fn + '.t', mol2fn)
-
-# identify which molecules succeeded, assign corina confs numbers (if CORINA_CONFS > 1)
-corina_success_names = [c[0] for c in corina_success]
-protonated_success = []
-total_success = len(protonated_flat)
-total_protomers = len(protonated_flat)
-
-for p in protonated_flat:
-    try:
-        ci = corina_success_names.index(p[0])
-    except:
-        total_success -= 1
-        continue
-
-    confnum = 0
-    while ci >= 0:        
-        mol_name, mol2fn = corina_success[ci]
-        corina_success_names.pop(ci)
-        corina_success.pop(ci)
-        if corinaconfs > 1:
-            mol_name = '.'.join([p[0], str(confnum)])
-            p1 = (mol_name, p[1], p[2])
-            rewrite_mol2_name("3d/" + mol2fn, mol_name)
-            protonated_success.append((mol2fn, p1))
-        else:
-            protonated_success.append((mol2fn, p))
-        confnum += 1
-        try:
-            ci = corina_success_names.index(p[0])
-        except:
-            ci = -1
-protonated_flat = protonated_success
-
-if corinaconfs > 1:
-    print("{} / {} protomers built successfully, {} conformations generated (avg {} confs per protomer, mc={})".format(total_success, total_protomers, len(protonated_flat), len(protonated_flat) / total_success, corinaconfs))
-else:
-    print("{} / {} protomers built successfully".format(total_success, total_protomers))
+subprocess.call(["mkdir", "3d"])
 
 # class for handling the conversion between Mol2 classes needed by various stages of the pipeline
 class MultiMol2:
@@ -150,7 +46,20 @@ class MultiMol2:
         oechem.OEWriteMolecule(ofs, oemol)
         s = ofs.GetString().decode('utf-8')
         ofs.close()
-        return s    
+        return s
+    @staticmethod
+    def mol2smiles(mol2):
+        ifs = oechem.oemolistream()
+        ifs.SetFormat(oechem.OEFormat_MOL2)
+        ofs = oechem.oemolostream() 
+        ofs.SetFormat(oechem.OEFormat_CAN)
+        ifs.openstring(mol2)
+        m = list(ifs.GetOEMols())[0]
+        ofs.openstring()
+        oechem.OEWriteMolecule(ofs, m)
+        s = ofs.GetString().decode('utf-8')
+        ofs.close()
+        return s
     @staticmethod
     def oe2dock(oemol):
         s = MultiMol2.oe2str(oemol).split('\n')
@@ -160,39 +69,56 @@ class MultiMol2:
         s = MultiMol2.oe2str(oemol)
         return Mol2MolSupplier_noF(s) # new function added to TL_Functions.py, creates a mol supplier object without reading from a file
 
+mol2s_in = sys.argv[1:]
+
+mols_in = []
+i = 0
+for mol2 in mol2s_in:
+    names, mols = Mol2MolSupplier(mol2, dontconvert=True)
+    for name in names:
+        mf = open(f"3d/{i}.mol2", 'w')
+        mf.write(mols[name])
+        mf.close()
+        smiles = "none"
+        mols_in.append((mf.name, name, smiles))
+        i += 1
+
 start = time.time()
 
 # read mol2 data into memory
 mol2_data = []
 solv_data = []
-for mol2, protomer in protonated_flat:
-    name, smiles, prot_id = protomer
+for i, entry in enumerate(mols_in):
+    mol2, name, smiles = entry
+    prot_id = 0
 
     # calculate solvation as we go along
-    if not os.path.isdir("solv/" + str(mol2)):
-        subprocess.call(["mkdir", "solv/" + str(mol2)])
+    solv_dir = "solv/" + str(i)
+    if not os.path.isdir(solv_dir):
+        subprocess.call(["mkdir", solv_dir])
         mol2_fullname = '.'.join([name, 'mol2'])
-        subprocess.call(["ln", "-svfn", os.getcwd() + "/3d/" + str(mol2), "solv/" + str(mol2) + "/" + mol2_fullname])
-        os.chdir("solv/" + str(mol2))
-        subprocess.call(["/bin/csh", "-f", DOCKBASE + "/ligand/amsol/calc_solvation.csh", mol2_fullname])
+        subprocess.call(["ln", "-svfn", "../../" + mol2, solv_dir + "/" + mol2_fullname])
+        os.chdir(solv_dir)
+        subprocess.call(["/bin/csh", DOCKBASE + "/ligand/amsol/calc_solvation.csh", mol2_fullname])
         os.chdir("../..")
 
-    if os.path.isfile("solv/" + str(mol2) + "/output.solv"):
+    if os.path.isfile(solv_dir + "/output.solv"):
 
-        with open("solv/" + str(mol2) + "/output.solv") as solv:
+        with open(solv_dir + "/output.solv") as solv:
             solv_data.append(solv.read())
 
-        with open("solv/" + str(mol2) + "/output.mol2") as mol2_f:
+        with open(solv_dir + "/output.mol2") as mol2_f:
             mol = MultiMol2(mol2_f.read())
-            mol.idx = mol2
+            mol.idx = i
             mol.name = name
             mol.smiles = smiles
+           
             mol.prot_id = prot_id
             mol.charge = int(float(solv_data[-1].split('\n')[0].split()[2]))
             mol2_data.append(mol)
 
 t_solvation = (time.time() - start)
-print("{} / {} solvation successful".format(len(mol2_data), len(protonated_flat)))
+print("{} / {} solvation successful".format(len(mol2_data), len(mol2s_in)))
 
 # hard-code this bad boy in here
 mp_range = ["M500","M400","M300","M200","M100","M000","P000","P010","P020","P030","P040","P050","P060","P070","P080","P090","P100","P110","P120","P130","P140","P150","P160","P170","P180","P190","P200","P210","P220","P230","P240","P250","P260","P270","P280","P290","P300","P310","P320","P330","P340","P350","P360","P370","P380","P390","P400","P410","P420","P430","P440","P450","P460","P470","P480","P490","P500","P600","P700","P800","P900"]

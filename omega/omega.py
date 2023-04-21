@@ -202,6 +202,8 @@ def generate_conformations(mol, h):
         torLib = TorDriveOpts.GetTorLib()
         add_torison_rules(torLib)
 
+    print(f'limitConfs={limitConfs}, energyWindow={energyWindow}, rmsd=${rmsd}, rangeflags=[energy={energyRangeFlag}, confs={limitConfsRangeFlag}, rmsd={rmsdRangeFlag}]')
+
     SliceEnsembleOpts = oeomega.OESliceEnsembleOptions()
     set_SliceEnsembleOpts_defaults(SliceEnsembleOpts, limitConfs, energyWindow, rmsd, energyRangeFlag, limitConfsRangeFlag, rmsdRangeFlag)
     #logging.warning('Setting energy window to %d; max confs to %d; rmsd to %.2f; energyRangeFlag to %s; limitConfsRangeFlag to %s; rmsdRangeFlag to %s.' % (energyWindow, limitConfs, rmsd, str(energyRangeFlag), str(limitConfsRangeFlag), str(rmsdRangeFlag)))

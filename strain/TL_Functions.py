@@ -165,7 +165,7 @@ class TP_list(object):
 # Shuo has modified this function significantly to get it to work with the
 # .mol2 files that this lab uses, which contain many lines of comments before
 # each line "@<TRIPOS>MOLECULE"
-def Mol2MolSupplier (file = None):
+def Mol2MolSupplier (file, dontconvert=False):
     names = [] #Make a list to hold the molecule names
     mols = {} #Make a dictionary
     with open(file, 'r') as f:
@@ -196,12 +196,15 @@ def Mol2MolSupplier (file = None):
                         mol.append(line)
                         break
                 block = ",".join(mol).replace(',','')
-                m = Chem.rdmolfiles.MolFromMol2Block(block, sanitize=False, removeHs = False)
+                if dontconvert:
+                    mols[name] = block
+                else:
+                    m = Chem.rdmolfiles.MolFromMol2Block(block, sanitize=False, removeHs = False)
+                    mols[name] = m
                 names.append(name)
-                mols[name] = m
     return(names, mols)
 
-def Mol2MolSupplier_noF(text):
+def Mol2MolSupplier_noF(text, dontconvert=False):
     names = []
     mols = {}
     count = 0
@@ -235,9 +238,12 @@ def Mol2MolSupplier_noF(text):
                     mol.append(line)
                     break
             block = ",".join(mol).replace(',','')
-            m = Chem.rdmolfiles.MolFromMol2Block(block, sanitize=False, removeHs = False)
+            if dontconvert:
+                mols[name] = block
+            else:
+                m = Chem.rdmolfiles.MolFromMol2Block(block, sanitize=False, removeHs = False)
+                mols[name] = m
             names.append(name)
-            mols[name] = m
     return names, mols
 
 # Here is an updated version to use with the output "file" string buffer object
