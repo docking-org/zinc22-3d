@@ -263,6 +263,8 @@ with tarfile.open("output.tar.gz", mode='w:gz') as output:
                 mol2_data.remove(mol2)
 
     t_strain_tot = t_db2_tot = t_omega_tot = 0
+    
+    skip_omega = True if os.getenv("SKIP_OMEGA") else False
 
     for i, mol in enumerate(mol2_data):
         zinc_hash = get_zinc_directory_hash(mol.name)
@@ -272,11 +274,14 @@ with tarfile.open("output.tar.gz", mode='w:gz') as output:
         # new wrapper function added to hydrogens.py, count_hydrogens
         h = count_hydrogens(mol.dockFormat)
         # generate_conformations is a new function in the new file omega.py
-        start = time.time()
-        db2ins, fails = generate_conformations(mol.oeFormat, h)
-        t_omega_tot += (time.time() - start)
-        assert(fails == 0)
-        db2ins = list(map(lambda mo:(MultiMol2.oe2dock(mo), MultiMol2.oe2supplier(mo)), db2ins))
+        if not skip_omega:
+            start = time.time()
+            db2ins, fails = generate_conformations(mol.oeFormat, h)
+            t_omega_tot += (time.time() - start)
+            assert(fails == 0)
+            db2ins = list(map(lambda mo:(MultiMol2.oe2dock(mo), MultiMol2.oe2supplier(mo)), db2ins))
+        else:
+            db2ins = [MultiMol2.oe2dock(mol.oeFormat), MultiMol2.oe2supplier(mol.oeFormat)]
 
         db2_all_data = ""
         for j, db2in in enumerate(db2ins):
