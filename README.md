@@ -20,7 +20,7 @@ Getting Started
   5. Install conda to either a shared nfs path or the '/soft' directory
   6. Create the conda environment using 'conda env create -f environment.yml -n envname'
   7. Move required software to '/soft' directory. Software must be .tar.gz format
-  8. Move required licenses to '/licenses' directory (Jchem/Omega)
+  8. Move required licenses to '/licenses' directory (Jchem/Omega). Software looks for jchem-license.cxl and oe-license.txt by default. These can be changed in the env.sh files
   9. Change paths in env.sh file (required changes are lines that are commented out)
   10. Modify the 'submit/build-3d.bash' file, source the conda environment on the first line
 
