@@ -15,7 +15,7 @@ Required Software
 Getting Started
 ===
   1. Fork this repository
-  2. Clone directory
+  2. Clone directory, cd into created directory
   4. Run install.sh 
   5. Install conda to either a shared nfs path or the '/soft' directory
   6. Create the conda environment using 'conda env create -f environment.yml -n envname'
