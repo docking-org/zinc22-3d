@@ -170,9 +170,9 @@ export PATH="${PATH}:${OBABELBASE}/bin"
 # aaand jchem too. all the software
 # activate the openeye license
 LICENSE_HOME=${LICENSE_HOME-$SOFT_HOME}
-export OE_LICENSE=$LICENSE_HOME/.oe-license.txt
+#export OE_LICENSE=$LICENSE_HOME/.oe-license.txt
 export CHEMAXON_PATH=$COMMON_DIR/$JCHEM_VERSION
-export CHEMAXON_LICENSE_URL=$LICENSE_HOME/.jchem-license.cxl
+#export CHEMAXON_LICENSE_URL=$LICENSE_HOME/jchem-license.cxl
 export PATH="$PATH:$CHEMAXON_PATH/bin"
 
 LIMIT_JAVA="${DOCKBASE}/common/java-thread-limiter/mock-num-cpus 2"
