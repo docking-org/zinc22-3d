@@ -25,5 +25,8 @@ Getting Started
   10. Modify the 'submit/build-3d.bash' file, source the conda environment on the first line
 
 Running The Pipeline
-=== 
+===  
+  1. Source the conda environment
+  2. Set optional/required environment variables ([see here](https://wiki.docking.org/index.php/Building_The_3D_Pipeline_ZINC22))
+  3. Run 'bash submit/submit-all.bash' to start job 
 
