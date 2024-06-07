@@ -7,8 +7,8 @@ This code will generate db2 files from smiles/mol2.
 Required Software
 ===
 - CORINA
-- OMEGA (code is setup to use the openeye python toolkit, could be reworked to use command line version)
-- JCHEM (cxcalc and molconvert)
+- Openeye OMEGA (code is setup to use the openeye python toolkit, could be reworked to use command line version)
+- Chemaxon JCHEM (cxcalc and molconvert)
 - Openbabel
 - Anaconda (Miniconda 3)
 
