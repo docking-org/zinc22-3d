@@ -1,9 +1,7 @@
-#Sample conda environment, with most dependencies needed to run the 3d building scripts. This will vary by system, of course. 
 name: 3d_build_env
 channels:
-  - openeye
+  - https://software.repos.intel.com/python/conda
   - conda-forge
-  - intel
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=conda_forge
@@ -13,16 +11,13 @@ dependencies:
   - binutils_impl_linux-64=2.38=h2a08ee3_1
   - blas=1.0=mkl
   - blosc=1.21.5=h0f2a231_0
-  - bottleneck=1.3.7=py311hf4808d0_0
   - brotli=1.0.9=h5eee18b_7
   - brotli-bin=1.0.9=h5eee18b_7
   - bzip2=1.0.8=h5eee18b_5
   - c-ares=1.19.1=h5eee18b_0
   - ca-certificates=2024.2.2=hbcca054_0
   - cairo=1.16.0=hb05425b_5
-  - chardet=4.0.0=py311h06a4308_1003
   - cmake=3.26.4=h96355d8_0
-  - contourpy=1.2.0=py311hdb19cb5_0
   - cycler=0.11.0=pyhd3eb1b0_0
   - expat=2.6.1=h59595ed_0
   - fftw=3.3.10=nompi_hc118613_108
@@ -35,16 +30,13 @@ dependencies:
   - gdbm=1.18=hd4cb3f1_4
   - glib=2.78.4=h6a678d5_0
   - glib-tools=2.78.4=h6a678d5_0
-  - greenlet=3.0.1=py311h6a678d5_0
   - hdf4=4.2.15=h9772cbc_5
   - hdf5=1.14.3=nompi_h4f84152_100
   - icu=73.2=h59595ed_0
   - iniconfig=1.1.1=pyhd3eb1b0_0
-  - intel-openmp=2023.2.3=intel_20
-  - joblib=1.2.0=py311h06a4308_0
+  - intel-openmp=2023.2.4=intel_49553
   - jpeg=9e=h5eee18b_1
   - kernel-headers_linux-64=2.6.32=he073ed8_17
-  - kiwisolver=1.4.4=py311h6a678d5_0
   - krb5=1.20.1=h143b758_1
   - lcms2=2.12=h3be6417_0
   - ld_impl_linux-64=2.38=h1181459_1
@@ -91,54 +83,35 @@ dependencies:
   - lz4-c=1.9.4=h6a678d5_0
   - matplotlib-base=3.8.0=py311ha02d727_0
   - mkl=2023.2.0=intel_49495
-  - mkl-service=2.4.0=py311h5eee18b_1
   - mkl_fft=1.3.8=py311h5eee18b_0
   - mkl_random=1.2.4=py311hdb19cb5_0
   - munkres=1.1.4=py_0
   - ncurses=6.4=h6a678d5_0
   - netcdf-fortran=4.6.1=nompi_hacb5139_103
-  - numexpr=2.8.7=py311h65dcdc2_0
-  - numpy=1.26.4=py311h08b1b3b_0
   - numpy-base=1.26.4=py311hf175353_0
   - openbabel=3.1.1=py311ha3c2874_8
-  - openeye-toolkits=2023.2.3=py311_0
   - openjpeg=2.4.0=h3ad879b_0
   - openssl=3.3.0=h4ab18f5_3
-  - packaging=23.1=py311h06a4308_0
   - packmol=20.010=h86c2bf4_0
-  - parmed=4.2.2=py311hb755f60_1
   - pcre2=10.42=hebb0a14_0
   - perl=5.34.0=h5eee18b_2
-  - pillow=10.2.0=py311h5eee18b_0
-  - pip=23.3.1=py311h06a4308_0
   - pixman=0.40.0=h7f8727e_1
-  - pluggy=1.0.0=py311h06a4308_1
-  - pycairo=1.23.0=py311hd1222b9_0
-  - pyparsing=3.0.9=py311h06a4308_0
-  - pytest=7.4.0=py311h06a4308_0
   - python=3.11.8=hab00c5b_0_cpython
   - python-dateutil=2.8.2=pyhd3eb1b0_0
   - python-tzdata=2023.3=pyhd3eb1b0_0
   - python_abi=3.11=2_cp311
-  - pytz=2023.3.post1=py311h06a4308_0
   - rdkit=2023.03.3=py311h4c2f14b_1
   - readline=8.2=h5eee18b_0
-  - reportlab=4.1.0=py311h459d7ec_0
   - rhash=1.4.3=hdbd6064_0
   - rlpycairo=0.2.0=pyhd8ed1ab_0
-  - scipy=1.11.4=py311h08b1b3b_0
-  - setuptools=68.2.2=py311h06a4308_0
   - six=1.16.0=pyhd3eb1b0_1
   - snappy=1.1.10=h6a678d5_1
-  - sqlalchemy=2.0.25=py311h5eee18b_0
   - sqlite=3.41.2=h5eee18b_0
   - sysroot_linux-64=2.12=he073ed8_17
-  - tbb=2021.11.0=intel_49513
+  - tbb=2021.13.1=intel_12
   - tk=8.6.13=noxft_h4845f30_101
-  - typing-extensions=4.9.0=py311h06a4308_1
   - typing_extensions=4.9.0=py311h06a4308_1
   - tzdata=2024a=h04d1e81_0
-  - wheel=0.41.2=py311h06a4308_0
   - xorg-kbproto=1.0.7=h7f98852_1002
   - xorg-libice=1.1.1=hd590300_0
   - xorg-libsm=1.2.4=h7391055_0
@@ -152,11 +125,40 @@ dependencies:
   - zstd=1.5.5=hc292b87_0
   - pip:
       - amberutils==21.0
+      - bottleneck==1.3.7
+      - chardet==4.0.0
+      - contourpy==1.2.0
       - edgembar==0.2
+      - greenlet==3.0.1
+      - joblib==1.2.0
+      - kiwisolver==1.4.4
+      - matplotlib==3.8.0
+      - mkl-fft==1.3.8
+      - mkl-random==1.2.4
+      - mkl-service==2.4.0
       - mmpbsa-py==16.0
+      - ndfes==1.8
+      - numexpr==2.8.7
+      - numpy==1.26.4
+      - openeye-toolkits==2023.2.3
+      - packaging==23.1
       - packmol-memgen==2023.2.24
       - pandas==2.2.2
+      - parmed==4.2.2
       - pdb4amber==22.0
+      - pillow==10.2.0
+      - pip==23.3.1
+      - pluggy==1.0.0
+      - pycairo==1.23.0
       - pymsmt==22.0
+      - pyparsing==3.0.9
+      - pytest==7.4.0
       - pytraj==2.0.6
+      - pytz==2023.3.post1
+      - reportlab==4.1.0
       - sander==22.0
+      - scipy==1.11.4
+      - setuptools==68.2.2
+      - sqlalchemy==2.0.25
+      - typing-extensions==4.9.0
+      - wheel==0.41.2
