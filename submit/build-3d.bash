@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 # req: JOB_ID // SLURM_ARRAY_JOB_ID
 # req: SGE_TASK_ID // SLURM_ARRAY_TASK_ID
 # req: INPUT
