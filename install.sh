@@ -28,3 +28,5 @@ mv protonate $INSTALL_PATH/soft/DOCK-latest/ligand
 mv rdkit $INSTALL_PATH/soft/DOCK-latest/ligand
 mv reactor $INSTALL_PATH/soft/DOCK-latest/ligand
 mv strain $INSTALL_PATH/soft/DOCK-latest/ligand
+
+mkdir -p $INSTALL_PATH/soft/extralibs
