@@ -3,6 +3,7 @@ channels:
   - https://software.repos.intel.com/python/conda
   - conda-forge
   - defaults
+  - openeye
 dependencies:
   - _libgcc_mutex=0.1=conda_forge
   - _openmp_mutex=4.5=2_gnu
@@ -90,6 +91,7 @@ dependencies:
   - netcdf-fortran=4.6.1=nompi_hacb5139_103
   - numpy-base=1.26.4=py311hf175353_0
   - openbabel=3.1.1=py311ha3c2874_8
+  - openeye-toolkits
   - openjpeg=2.4.0=h3ad879b_0
   - openssl=3.3.0=h4ab18f5_3
   - packmol=20.010=h86c2bf4_0
