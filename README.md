@@ -5,7 +5,7 @@ This code will generate db2 files from smiles/mol2.
 # Required Software
 
 - CORINA
-- Openeye OMEGA (code is setup to use the openeye python toolkit, could be reworked to use command line version)
+- Openeye OMEGA (code is setup to use the openeye python toolkit - https://docs.eyesopen.com/toolkits/python/quickstart-python/install.html)
 - Chemaxon JCHEM (cxcalc and molconvert)
 - Openbabel
 - Anaconda (Miniconda 3)
@@ -29,8 +29,7 @@ In the soft folder, you must add the following folders
 1. Openbabel - https://github.com/openbabel/openbabel/releases/tag/openbabel-3-1-1 (you must clone the repository and compile it from the source code)
 2. JChem - https://download.chemaxon.com/jchem-engines
 3. CORINA - containing only the corina executable
-4. Omega - containing the
-5. extralibs - a folder containing extra lib files that your system needs. This can vary from system to system. Common files include libg2c.so, libz.so, etc.
+4. extralibs - a folder containing extra lib files that your system needs. This can vary from system to system. Common files include libg2c.so, libz.so, etc.
 
 All software folders will be compressed through the scripts. In the case that these aren't automatically compressed, run;
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#source your env.sh here
+
 # req: JOB_ID // SLURM_ARRAY_JOB_ID
 # req: SGE_TASK_ID // SLURM_ARRAY_TASK_ID
 # req: INPUT
@@ -10,6 +10,7 @@
 
 # opt: WORK_DIR
 cwd=$PWD
+source $cwd/env.sh
 export SOFT_HOME=${SOFT_HOME-$HOME}
 export SHRTCACHE=${SHRTCACHE-/tmp}
 export LONGCACHE=${LONGCACHE-/tmp}
@@ -19,16 +20,13 @@ export COMMON_DIR=$LONGCACHE/build_3d_common_$(whoami)
 # don't set default version in here- do it in submit-all.bash
 export DOCK_VERSION=${DOCK_VERSION}
 export CORINA_VERSION=${CORINA_VERSION}
-export PYENV_VERSION=${PYENV_VERSION}
 export JCHEM_VERSION=${JCHEM_VERSION}
 export OPENBABEL_VERSION=${OPENBABEL_VERSION}
 export EXTRALIBS_VERSION=${EXTRALIBS_VERSION}
-
-export PYTHONBASE=$COMMON_DIR/$PYENV_VERSION
 export DOCKBASE=$COMMON_DIR/${DOCK_VERSION}
 
 failed=
-for required_var in INPUT OUTPUT DOCK_VERSION CORINA_VERSION PYENV_VERSION JCHEM_VERSION OPENBABEL_VERSION EXTRALIBS_VERSION; do
+for required_var in INPUT OUTPUT DOCK_VERSION CORINA_VERSION JCHEM_VERSION OPENBABEL_VERSION EXTRALIBS_VERSION; do
 	if [ -z ${!required_var} ]; then
 		echo "missing $required_var!" 1>&2
 		failed=1
