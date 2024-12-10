@@ -180,8 +180,8 @@ export CXCALCEXE="`which cxcalc `"
 export MOLCONVERTEXE="`which molconvert`"
 export PATH="${PATH}:${DOCKBASE}/bin"
 
-# activate python environment
-source $PYTHONBASE/bin/activate
+# activate python environment (OLD, we use conda now)
+# source $PYTHONBASE/bin/activate
 
 log $(which python) ::: $(which python3) :::
 
