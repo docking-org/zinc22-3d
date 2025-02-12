@@ -9,7 +9,6 @@
 
 # opt: WORK_DIR
 cwd=$PWD
-source $cwd/env.sh
 export SOFT_HOME=${SOFT_HOME-$HOME}
 export SHRTCACHE=${SHRTCACHE-/tmp}
 export LONGCACHE=${LONGCACHE-/tmp}
@@ -19,13 +18,16 @@ export COMMON_DIR=$LONGCACHE/build_3d_common_$(whoami)
 # don't set default version in here- do it in submit-all.bash
 export DOCK_VERSION=${DOCK_VERSION}
 export CORINA_VERSION=${CORINA_VERSION}
+export PYENV_VERSION=${PYENV_VERSION}
 export JCHEM_VERSION=${JCHEM_VERSION}
 export OPENBABEL_VERSION=${OPENBABEL_VERSION}
 export EXTRALIBS_VERSION=${EXTRALIBS_VERSION}
+
+export PYTHONBASE=$COMMON_DIR/$PYENV_VERSION
 export DOCKBASE=$COMMON_DIR/${DOCK_VERSION}
 
 failed=
-for required_var in INPUT OUTPUT DOCK_VERSION CORINA_VERSION JCHEM_VERSION OPENBABEL_VERSION EXTRALIBS_VERSION; do
+for required_var in INPUT OUTPUT DOCK_VERSION CORINA_VERSION PYENV_VERSION JCHEM_VERSION OPENBABEL_VERSION EXTRALIBS_VERSION; do
 	if [ -z ${!required_var} ]; then
 		echo "missing $required_var!" 1>&2
 		failed=1
@@ -167,9 +169,9 @@ export PATH="${PATH}:${OBABELBASE}/bin"
 # aaand jchem too. all the software
 # activate the openeye license
 LICENSE_HOME=${LICENSE_HOME-$SOFT_HOME}
-#export OE_LICENSE=$LICENSE_HOME/.oe-license.txt
+export OE_LICENSE=$LICENSE_HOME/.oe-license.txt
 export CHEMAXON_PATH=$COMMON_DIR/$JCHEM_VERSION
-#export CHEMAXON_LICENSE_URL=$LICENSE_HOME/jchem-license.cxl
+export CHEMAXON_LICENSE_URL=$LICENSE_HOME/.jchem-license.cxl
 export PATH="$PATH:$CHEMAXON_PATH/bin"
 
 LIMIT_JAVA="${DOCKBASE}/common/java-thread-limiter/mock-num-cpus 2"
@@ -177,8 +179,8 @@ export CXCALCEXE="`which cxcalc `"
 export MOLCONVERTEXE="`which molconvert`"
 export PATH="${PATH}:${DOCKBASE}/bin"
 
-# activate python environment (OLD, we use conda now)
-# source $PYTHONBASE/bin/activate
+# activate python environment
+source $PYTHONBASE/bin/activate
 
 log $(which python) ::: $(which python3) :::
 
