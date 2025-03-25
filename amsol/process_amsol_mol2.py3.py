@@ -89,7 +89,7 @@ def process_amsol_file(file,outputprefix,watorhex):
          # if (len(linesplit) == 8 and is_int(linesplit[0]) ):
          # AMSOL7.1: table has an additional column "Sigma k cal/(Ang**2)"
          # AMSOL7.1 table: table has 9 columns
-         if (len(linesplit) == 9 and is_int(linesplit[0]) and ( linesplit[4] is not "*")):  ## this gets that per-atom break-down of solvation calculation
+         if (len(linesplit) == 9 and is_int(linesplit[0]) and ( linesplit[4] != "*")):  ## this gets that per-atom break-down of solvation calculation
              file2.write(line)
              alist.append(linesplit)
 
