@@ -183,8 +183,7 @@ def generate_conformations(mol, h):
 
     numHs = h
     if numHs > 5:
-        print("Refusing to build conformations with > 5 rotatable hydrogens")
-        sys.exit(-1)
+        raise ValueError("Refusing to build conformations with >5 rotatable hydrogens")
     if numHs >= 4:
         ##logging.warn("4-5 Rotatable hydrogens  reported. Reducing confs by a factor of 30")
         limitConfs = limitConfs // 30

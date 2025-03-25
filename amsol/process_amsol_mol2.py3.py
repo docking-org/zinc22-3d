@@ -196,13 +196,11 @@ def diff_amsol71_files(atom_listwat,totwat,atom_listhex,tothex,name,numatom,outp
 
     N = len(atom_listwat)
     if len(atom_listwat) != len(atom_listhex):
-        print("Error: len(atom_listwat) != len(atom_listhex):" + str(len(atom_listwat))+" != "+str(len(atom_listhex)))
-        sys.exit()
+        raise ValueError("Error: len(atom_listwat) != len(atom_listhex):" + str(len(atom_listwat))+" != "+str(len(atom_listhex)))
 
     if N != numatom:
         print("\n".join(' '.join(l) for l in atom_listwat))
-        print("Error: len(atom_listwat) != numatom: " + str(N) +" != "+str(numatom))
-        sys.exit()
+        raise ValueError("Error: len(atom_listwat) != numatom: " + str(N) +" != "+str(numatom))
 
     fileline = ''## generate string output to write to a file
     if VERBOSE:
@@ -383,10 +381,8 @@ def modify_charges_mol2_file(mol2file, atom_list_hex, outputprefix):
 
     n = len(atom_list_hex)
     if n != len(mol.atom_list):
-       print("Error: n != len(mol.atom_list) : " + str(n) + " !=" + str(len(mol.atom_list)))
-       exit()
+       raise ValueError("Error: n != len(mol.atom_list) : " + str(n) + " !=" + str(len(mol.atom_list))) 
 
-    
     for i in range(n):
         charge = atom_list_hex[i][2]
         if VERBOSE:
