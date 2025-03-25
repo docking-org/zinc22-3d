@@ -220,8 +220,8 @@ def generate_conformations(mol, h):
     oechem.OEDetermineComponents(mol)
     count, ringlist = oechem.OEDetermineRingSystems(mol)
     
-    print(ringlist)
-    print(count)
+    # print(ringlist)
+    # print(count)
     #rcf = open('ring_count', 'w')
     #rcf.write('%d\n' % count)
     #rcf.close()
@@ -245,7 +245,7 @@ def generate_conformations(mol, h):
         for i in range(1, count+1):
 
             pred.SelectPart(i)
-            print(pred)
+            # print(pred)
 
             #ringmol = oechem.OEMol()
             molcopy = oechem.OEMol(mol)
