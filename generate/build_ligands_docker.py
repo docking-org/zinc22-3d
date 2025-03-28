@@ -352,7 +352,6 @@ with tarfile.open("bundle.db2.tgz", mode='w:gz') as output:
                 output.close()
                 sys.exit()
 
-            # TODO: nice-to-have Add neutral smiles to db2
             # TODO: Put the microspecies percentage in the db2
 
             db2in_standard, db2in_strain = db2in
@@ -387,7 +386,7 @@ with tarfile.open("bundle.db2.tgz", mode='w:gz') as output:
             continue
 
         start = time.time()
-        ddb2_all_data = db2_all_data[:2] + f"{mol.name.split('.')[0]:16}" + db2_all_data[18:]
+        db2_all_data = db2_all_data[:2] + f"{mol.name.split('.')[0]:16}" + db2_all_data[18:]
         shortname = mol.name.split('.')[0]
         neutral_smiles = neutral_smiles_dict[shortname] if shortname in neutral_smiles_dict else "N/A"
         if len(neutral_smiles) > 76:
