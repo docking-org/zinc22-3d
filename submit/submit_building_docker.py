@@ -7,6 +7,7 @@ INPUT_SMI_NAME = "input.smi"
 
 
 SGE_TEMPLATE = """#!/bin/bash
+#$ -S /bin/bash
 #$ -cwd
 #$ -j y
 #$ -o {log_folder}
@@ -14,7 +15,7 @@ SGE_TEMPLATE = """#!/bin/bash
 #$ -l h_rt={h_rt}
 #$ -l mem_free=2.5G
 
-INDIR={input_folder}
+export INDIR="{input_folder}"
 {command}
 """
 
@@ -26,7 +27,7 @@ SLURM_TEMPLATE = """#!/bin/bash
 
 TMPDIR=$(mktemp -d /scratch/${{USER}}/job_${{SLURM_JOB_ID}}_${{SLURM_ARRAY_TASK_ID}}_XXXXXX)
 trap "rm -rf $TMPDIR" EXIT
-export INDIR="/mnt/nfs/exk/work/bwhall61/building_github/test/building_output/${{SLURM_ARRAY_TASK_ID}}"
+export INDIR="{input_folder}"
 newgrp docker << EOF
 {command}
 EOF
@@ -34,7 +35,7 @@ EOF
 
 APPTAINER_COMMAND = "apptainer exec --cleanenv --no-mount tmp --bind ${{INDIR}}:/data --bind ${{TMPDIR}}:/tmp {container_path_or_name} bash /dock/ligand/submit/build-docker.sh"
 
-DOCKER_COMMAND = "docker run --rm -u $(id -u):$(id -g) --mount type=bind,source=${{INDIR}},target=/data --mount type=bind,source=${{TMPDIR}},target=/tmp {container_path_or_name} bash /dock/ligand/submit/build-docker.sh"
+DOCKER_COMMAND = "docker run --rm -u $(id -u):$(id -g) -v ${{INDIR}}:/data -v ${{TMPDIR}}:/tmp {container_path_or_name} bash /dock/ligand/submit/build-docker.sh"
 
 
 def make_building_array_job(input_file, output_folder, bundle_size, minutes_per_mol, building_config_file,
