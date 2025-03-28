@@ -377,6 +377,18 @@ with tarfile.open("bundle.db2.tgz", mode='w:gz') as output:
                 failed_strain_db2 = True
                 break
 
+            # Remove the protomer ID inside the DB2 file itself
+            db2_data = db2_data[:2] + f"{mol.name.split('.')[0]:16}" + db2_data[18:]
+
+            # Add the neutral smiles to the DB2
+            shortname = mol.name.split('.')[0]
+            neutral_smiles = neutral_smiles_dict[shortname] if shortname in neutral_smiles_dict else "N/A"
+            if len(neutral_smiles) > 76:
+                neutral_smiles = "smilestoolong"
+            db2_data_list = db2_data.split('\n')
+            db2_data_list[2] = f"M {neutral_smiles:76}"
+            db2_data = '\n'.join(db2_data_list)
+
             db2_all_data += db2_data
             t_db2_tot += (time.time() - start)
 
@@ -386,14 +398,6 @@ with tarfile.open("bundle.db2.tgz", mode='w:gz') as output:
             continue
 
         start = time.time()
-        db2_all_data = db2_all_data[:2] + f"{mol.name.split('.')[0]:16}" + db2_all_data[18:]
-        shortname = mol.name.split('.')[0]
-        neutral_smiles = neutral_smiles_dict[shortname] if shortname in neutral_smiles_dict else "N/A"
-        if len(neutral_smiles) > 76:
-            neutral_smiles = "smilestoolong"
-        db2_all_data_list = db2_all_data.split('\n')
-        db2_all_data_list[2] = f"M {neutral_smiles:76}"
-        db2_all_data = '\n'.join(db2_all_data_list)
         write_to_tarball(output, db2_all_data.encode('utf-8'), name=mol_fullname + '.db2')
         successfully_built.add(shortname)
 
