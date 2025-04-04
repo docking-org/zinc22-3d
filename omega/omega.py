@@ -75,9 +75,9 @@ def set_SliceEnsembleOpts_defaults(SliceEnsembleOpts, limitConfs=200, energyWind
         #SliceEnsembleOpts.SetRMSRange("0.2, 0.3, 0.4, 0.5")
         SliceEnsembleOpts.SetRMSRange("0.1, 0.2, 0.3, 0.4")
     # Sets flag if energy of the conformers should be used for slicing of conformers. This flag should be turned on if energies are optimized energies of the conformers. Default: False
-    # SliceEnsembleOpts.SetSliceByEnergy(False)
+    SliceEnsembleOpts.SetSliceByEnergy(False)
     # Sets the Energy threshold (Difference between energies) below which two conformers are treated as duplicates. This value is only meaningful when SetSliceByEnergy is set to true. Default: 0.01.
-    # SliceEnsembleOpts.SetEnergyThreshold(0.01)
+    SliceEnsembleOpts.SetEnergyThreshold(0.01)
 
 #https://docs.eyesopen.com/toolkits/cpp/oefftk/OEFFClasses/OEMMFFSheffieldOptions.html#OEFF::OEMMFFSheffieldOptions
 def set_ffOpts_defaults(ffOpts,ffType="MMFF94Smod"):
@@ -183,8 +183,7 @@ def generate_conformations(mol, h):
 
     numHs = h
     if numHs > 5:
-        print("Refusing to build conformations with > 5 rotatable hydrogens")
-        sys.exit(-1)
+        raise ValueError("Refusing to build conformations with >5 rotatable hydrogens")
     if numHs >= 4:
         ##logging.warn("4-5 Rotatable hydrogens  reported. Reducing confs by a factor of 30")
         limitConfs = limitConfs // 30
@@ -215,14 +214,14 @@ def generate_conformations(mol, h):
     set_ffOpts_defaults(ffOpts,ffType)
     #logging.warning('Setting ffType to %s' % (ffType))
     ff = oeff.OEMMFFSheffield(ffOpts)
-    # tordriver.SetForceField(ff)
+    tordriver.SetForceField(ff)
     omegaFixOpts = oeomega.OEConfFixOptions()
 
     oechem.OEDetermineComponents(mol)
     count, ringlist = oechem.OEDetermineRingSystems(mol)
     
-    print(ringlist)
-    print(count)
+    # print(ringlist)
+    # print(count)
     #rcf = open('ring_count', 'w')
     #rcf.write('%d\n' % count)
     #rcf.close()
@@ -246,7 +245,7 @@ def generate_conformations(mol, h):
         for i in range(1, count+1):
 
             pred.SelectPart(i)
-            print(pred)
+            # print(pred)
 
             #ringmol = oechem.OEMol()
             molcopy = oechem.OEMol(mol)

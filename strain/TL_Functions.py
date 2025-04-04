@@ -57,6 +57,7 @@ import os #For the function to read in the molecules from the .mol2 file
 import numpy as np #For arrays and NumPy function
 from math import sqrt, atan2, pi #For calculating dihedral angles
 from math import ceil #Ceiling function
+from numpy.linalg import norm
 
 
 # Import the XML file, using this as a guide:
@@ -299,13 +300,22 @@ def dihedral(a_1, a_2, a_3, a_4):
     b_2 = a_3 - a_2
     b_3 = a_4 - a_3
 
-    n_1 = unit(np.cross(b_1, b_2))
-    n_2 = unit(np.cross(b_2, b_3))
+    n_1 = np.cross(b_1, b_2)
+    # Only normalize vector if its not length 0
+    if norm(n_1) != 0:
+        n_1 = unit(n_1)
+
+    n_2 = np.cross(b_2, b_3)
+    if norm(n_2) != 0:
+        n_2 = unit(n_2)
 
     # Imagine the first atom (a_1) is above the middle bond (from a_2 to a_3),
     # so that b_1 points downward. Then n_1 points out of the page
 
-    m = unit(np.cross(n_1, b_2))
+    m = np.cross(n_1, b_2)
+    if norm(m) != 0:
+        m = unit(m)
+        
     # I moved the normalization to be after the cross product. Moving
     # the normalization should not change the end result because the cross
     # product commutes with scalar multiplication and ||n_1|| = 1

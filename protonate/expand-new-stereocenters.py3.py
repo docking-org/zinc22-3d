@@ -102,32 +102,47 @@ def expand_centers(mols, reference=None, limit=LIMIT, strict=True):
 
 def main(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument('input', type=str, help="Where to read protomers from")
+    parser.add_argument('input', type=str, nargs='?', default='-', help="Where to read protomers from")
     parser.add_argument('output', type=str, nargs='?', default='-', help="Where to write protomers to")
     parser.add_argument('-r', '--reference', nargs='?', default=None, type=str, help="Reference SMILES string to re-assign any lost stereochemistry NOT IMPLEMENTED")
     parser.add_argument('-l', '--limit', type=int, nargs='?', default=LIMIT, help="Max expansions to accept")
     params = parser.parse_args(args)
 
-    with open(params.input) as f:
-        for char in next(f, ''):
-            if char.isspace():
-                sep = char
-                break
-        else:
-            sep = ' '
+
+    if params.input == '-': # From stdin (new pipeline)
+        sep = '\t'
+        mols = []
+        for line in sys.stdin:
+            smi, name, col2, col3 = line.strip().split(sep)
+            mol = C.MolFromSmiles(smi, sanitize=False) # I think we should sanitize for corina, but keeping feature parity for now
+            mol.SetProp('_Name', name)
+            mol.SetProp('Column_2', col2)
+            mol.SetProp('Column_3', col3)
+            mols.append(mol)
+            props = ['Column_2', 'Column_3']
+    else: # Old file based pipeline
+        with open(params.input) as f:
+            for char in next(f, ''):
+                if char.isspace():
+                    sep = char
+                    break
+            else:
+                sep = ' '
+        mols = C.SmilesMolSupplier(params.input, delimiter=sep, titleLine=False, sanitize=False)
+        try:
+            props = list(next(mols).GetPropNames())
+        except AttributeError:
+            props = []
+
 
     if params.reference is not None and False:
         reference = C.SmilesMolSupplier(params.reference, delimiter=sep, titleLine=False, sanitize=False)
     else:
         reference = None
-    reader = C.SmilesMolSupplier(params.input, delimiter=sep, titleLine=False, sanitize=False)
-    try:
-        props = list(next(reader).GetPropNames())
-    except AttributeError:
-        props = []
+
     writer = C.SmilesWriter(params.output, delimiter=sep, includeHeader=False, isomericSmiles=True)
     writer.SetProps(props)
-    expanded = expand_centers(reader,
+    expanded = expand_centers(mols,
                               reference=reference,
                               limit=params.limit, 
                               strict=True)
