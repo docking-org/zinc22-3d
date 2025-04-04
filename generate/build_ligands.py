@@ -299,6 +299,8 @@ with tarfile.open("output.tar.gz", mode='w:gz') as output:
             # new wrapper function added to mol2db2.py, mol2db2_quick
             start = time.time()
             db2_data = mol2db2_quick(db2in_standard, solvfile="solv/" + str(mol.idx) + "/output.solv", clashfile=DOCKBASE + "/ligand/mol2db2/clashfile.txt")
+            # Remove the protomer ID inside the DB2 file itself
+            db2_data = db2_data[:2] + f"{mol.name.split('.')[0]:16}" + db2_data[18:]
             db2_all_data += db2_data
             t_db2_tot += (time.time() - start)
 

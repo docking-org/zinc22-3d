@@ -90,9 +90,6 @@ def load_neutral_smiles_dict(input_file='/data/input.smi'):
     return smiles_dict
 
 
-# TODO: Fix the microspecies percentage being in the output name (ex. ZINC.100.db2.gz). Should be in file name (as .0, .1, etc) but not inside the db2
-
-
 neutral_smiles_dict = load_neutral_smiles_dict()
 
 # TODO: add the neutral smiles to the "protonated flat" list
