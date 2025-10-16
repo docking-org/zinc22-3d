@@ -10,6 +10,8 @@ from geometry import distL2Squared3
 from collections import defaultdict
 import buckets2
 import operator
+import numpy as np
+import time
 
 class Clash(object):
   '''holds parameters that determine what a clashed conformation contains.
@@ -77,13 +79,22 @@ class Clash(object):
         atoms = [atom for atom in range(natoms) if 0 == mol2data.atomType[atom].find(typeA) or typeA == "*"]
         ntypeatoms = len(atoms)
 
+        # Extract coordinates for selected atoms into NumPy array
+        atom_coords = np.array([xyzData[atom] for atom in atoms])
+
         for atomi in range(ntypeatoms):
-          for atomj in range(atomi+1, ntypeatoms):
-            atomA = atoms[atomi]
+          atomA = atoms[atomi]
+
+          # Vectorize: compute all remaining distances at once
+          diffs = atom_coords[atomi+1:] - atom_coords[atomi]
+          distances_squared = np.sum(diffs * diffs, axis=1)
+
+          for idx, atomj in enumerate(range(atomi+1, ntypeatoms)):
             atomB = atoms[atomj]
             if not compr(mol2data.bondsBetweenActual(atomA, atomB), bondc):
               continue
-            dist = distL2Squared3(xyzData[atomA], xyzData[atomB])
+            # Use precomputed distance instead of calling distL2Squared3
+            dist = distances_squared[idx]
             if ((const == "min" and dist < distc2) or (const == "max" and dist > distc2)):
               return True
 
