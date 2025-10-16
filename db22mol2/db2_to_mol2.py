@@ -221,7 +221,7 @@ def convert_db2_to_mol2(db2mols, chimera_headers=False):
                       res_num = 1
                       resname = "lig"
                       mol2atom = mol2.atom(coord.X,coord.Y,coord.Z,tempatom.Q,tempatom.type,tempatom.name,tempatom.num,res_num,resname)
-                      if residue_list.has_key(res_num):
+                      if res_num in residue_list:
                          residue_list[res_num].append(mol2atom)
                       else:
                          residue_list[res_num] = [mol2atom]
@@ -286,7 +286,7 @@ def main(args=sys.argv, stdout=sys.stdout):
     for heir_idx, mol2mols in enumerate(allmol2s, start=1):
         outfile = target_tpl
 
-        if isinstance(outfile, basestring):
+        if isinstance(outfile, str):
             outfile = target_tpl.format(num=heir_idx)
             logging.info("writing #{} -> {}".format(heir_idx, outfile))
         else:
