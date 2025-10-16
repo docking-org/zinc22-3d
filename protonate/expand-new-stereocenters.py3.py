@@ -110,16 +110,20 @@ def main(args):
 
 
     if params.input == '-': # From stdin (new pipeline)
+        # This also replaces coalese.py3.py which just de-duplicates output smiles from protomer+tautomer expansion
         sep = '\t'
-        mols = []
+        best_mols = {}
         for line in sys.stdin:
             smi, name, col2, col3 = line.strip().split(sep)
             mol = C.MolFromSmiles(smi, sanitize=False) # I think we should sanitize for corina, but keeping feature parity for now
             mol.SetProp('_Name', name)
             mol.SetProp('Column_2', col2)
             mol.SetProp('Column_3', col3)
-            mols.append(mol)
-            props = ['Column_2', 'Column_3']
+            score = float(col3.split()[-1])
+            if smi not in best_mols or score > float(best_mols[smi].GetProp('Column_3').split()[-1]):
+                best_mols[smi] = mol
+        mols = list(best_mols.values())
+        props = ['Column_2', 'Column_3']
     else: # Old file based pipeline
         with open(params.input) as f:
             for char in next(f, ''):
