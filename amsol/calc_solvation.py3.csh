@@ -91,7 +91,7 @@ endif
 if $?VERBOSE then
 echo "obabel -i mol2 temp_AtomTypesFixed.mol2 -o mopin -O temp.ZmatMOPAC"
 endif
-${OBABELEXE} -i mol2 ${TEMP_FILE} -o mopin -O ${current_path}/temp.ZmatMOPAC
+${OBABELEXE} -i mol2 ${TEMP_FILE} -o mopin -O ${current_path}/temp.ZmatMOPAC -f 0 -l 1
 
 # prepare the use of python:
 if ! $?PYTHONPATH then
