@@ -52,19 +52,18 @@ while [[ "$#" -gt 0 ]]; do
 	esac
 done
 
-sed 's/\s\+/ /g' "${INPUT}" | \
-	${CXCALCEXE} -g dominanttautomerdistribution -H "${PH}" -C false -t tautomer-dist | \
-	${MOLCONVERTEXE} sdf -g -c "tautomer-dist>=${TAUTOMER_LIMIT}" | \
-	${CXCALCEXE} -g microspeciesdistribution -H $PH -t protomer-dist | \
-	${MOLCONVERTEXE} smiles -g -c "protomer-dist>=${PROTOMER_LIMIT}" -T name:tautomer-dist:protomer-dist | \
-        awk -v "cutoff=${TAUT_PROT_CUTOFF}" -v "start=${START}" '{
-                if (NR == 1 && start < 2) { 
-                        print $0, "score" 
-                } else { 
-                        score = ($3 * $4)/100 ; 
-                        if (score >= cutoff) {
-                                print $0, score
-                        }
-                }
-        }'
-
+# If the first molecule of input has no tautomers with tautomer-dist>=TAUTOMER_LIMIT 
+# or protomers with protomer-dist>=PROTOMER_LIMIT then this pipeline fails.
+# We start with a dummy carbon atom as the first molecule so that this failure doesn't occur.
+{ echo "C dummy_remove_me"; sed 's/\s\+/ /g' "${INPUT}"; } | \
+    ${CXCALCEXE} -g dominanttautomerdistribution -H "${PH}" -C false -t tautomer-dist | \
+    ${MOLCONVERTEXE} sdf -g -c "tautomer-dist>=${TAUTOMER_LIMIT}" | \
+    ${CXCALCEXE} -g microspeciesdistribution -H $PH -t protomer-dist | \
+    ${MOLCONVERTEXE} smiles -g -c "protomer-dist>=${PROTOMER_LIMIT}" -T name:tautomer-dist:protomer-dist | \
+    awk -v "cutoff=${TAUT_PROT_CUTOFF}" '{
+        if ($2 == "dummy_remove_me") next
+        score = ($3 * $4)/100
+        if (score >= cutoff) {
+            print $0, score
+        }
+    }'
