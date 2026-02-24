@@ -5,7 +5,8 @@ import sys
 import os
 
 DOCKBASE=os.environ['DOCKBASE']
-sys.path.append(DOCKBASE + "/ligand/mol2db2_py3_strain")
+# sys.path.append(DOCKBASE + "/ligand/mol2db2_py3_strain")
+sys.path.append(DOCKBASE + "/ligand/mol2db2_cpp_strain")
 sys.path.append(DOCKBASE + "/ligand/strain")
 sys.path.append(DOCKBASE + "/ligand/omega")
 
@@ -368,7 +369,14 @@ with tarfile.open("bundle.db2.tgz", mode='w:gz') as output:
             # new wrapper function added to mol2db2.py, mol2db2_quick
             start = time.time()
             try:
-                db2_data = mol2db2_quick(db2in_standard, solvfile="solv/" + str(mol.idx) + "/output.solv", clashfile=DOCKBASE + "/ligand/mol2db2/clashfile.txt")
+                # db2_data = mol2db2_quick(db2in_standard, solvfile="solv/" + str(mol.idx) + "/output.solv", clashfile=DOCKBASE + "/ligand/mol2db2/clashfile.txt")
+                # CPP version
+                sio = io.StringIO()
+                db2in_standard.writeMol2File(sio)
+                db2_data = subprocess.run(
+                    ["/dock/mol2db2", "-m", "-", "-s", "solv/" + str(mol.idx) + "/output.solv", "-d", DOCKBASE + "/ligand/mol2db2/clashfile.txt", "-o", "-"],
+                    input=sio.getvalue(), capture_output=True, text=True, check=True,
+                ).stdout
             except Exception as e:
                 print(f"Mol {mol.name} failed mol2db2_quick with exception: {e}")
                 failed_strain_db2 = True

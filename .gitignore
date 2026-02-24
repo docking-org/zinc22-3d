@@ -6,3 +6,5 @@ soft/
 
 env-mar.sh
 output
+
+mol2db2_cpp_strain/eigen*
