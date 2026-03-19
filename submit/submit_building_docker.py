@@ -35,7 +35,7 @@ EOF
 
 APPTAINER_COMMAND = "apptainer exec --cleanenv --no-mount tmp --bind ${{INDIR}}:/data --bind ${{TMPDIR}}:/tmp {container_path_or_name} bash /dock/ligand/submit/build-docker.sh"
 
-DOCKER_COMMAND = "docker run --rm -u $(id -u):$(id -g) -v ${{INDIR}}:/data -v ${{TMPDIR}}:/tmp {container_path_or_name} bash /dock/ligand/submit/build-docker.sh"
+DOCKER_COMMAND = "docker run --network=none --rm -u $(id -u):$(id -g) -v ${{INDIR}}:/data -v ${{TMPDIR}}:/tmp {container_path_or_name} bash /dock/ligand/submit/build-docker.sh"
 
 
 def make_building_array_job(input_file, output_folder, bundle_size, minutes_per_mol, building_config_file,
