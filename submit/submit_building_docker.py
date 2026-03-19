@@ -16,6 +16,7 @@ SGE_TEMPLATE = """#!/bin/bash
 #$ -l h_rt={h_rt}
 #$ -l mem_free=2.5G
 
+echo $(hostname)
 TASK_ID=$SGE_TASK_ID
 {subdir_bash}
 LOGDIR="{log_folder}/$SUBDIR"
@@ -31,6 +32,7 @@ SLURM_TEMPLATE = """#!/bin/bash
 #SBATCH --time={h_rt}
 #SBATCH --mem=2500M
 
+echo $(hostname)
 TMPDIR=$(mktemp -d /scratch/${{USER}}/job_${{SLURM_JOB_ID}}_${{SLURM_ARRAY_TASK_ID}}_XXXXXX)
 trap "rm -rf $TMPDIR" EXIT
 TASK_ID=$SLURM_ARRAY_TASK_ID
