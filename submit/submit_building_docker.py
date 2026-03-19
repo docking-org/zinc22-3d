@@ -11,19 +11,22 @@ SGE_TEMPLATE = """#!/bin/bash
 #$ -S /bin/bash
 #$ -cwd
 #$ -j y
-#$ -o {log_folder}
+#$ -o /dev/null
 #$ -t 1-{count}
 #$ -l h_rt={h_rt}
 #$ -l mem_free=2.5G
 
 TASK_ID=$SGE_TASK_ID
 {subdir_bash}
+LOGDIR="{log_folder}/$SUBDIR"
+mkdir -p "$LOGDIR"
+exec > "$LOGDIR/build_${{TASK_ID}}.log" 2>&1
 export INDIR="{input_folder_base}/$SUBDIR"
 {command}
 """
 
 SLURM_TEMPLATE = """#!/bin/bash
-#SBATCH --output={log_folder}/slurm-%A_%a.out
+#SBATCH --output=/dev/null
 #SBATCH --array=1-{count}
 #SBATCH --time={h_rt}
 #SBATCH --mem=2500M
@@ -32,6 +35,9 @@ TMPDIR=$(mktemp -d /scratch/${{USER}}/job_${{SLURM_JOB_ID}}_${{SLURM_ARRAY_TASK_
 trap "rm -rf $TMPDIR" EXIT
 TASK_ID=$SLURM_ARRAY_TASK_ID
 {subdir_bash}
+LOGDIR="{log_folder}/$SUBDIR"
+mkdir -p "$LOGDIR"
+exec > "$LOGDIR/slurm_${{SLURM_JOB_ID}}_${{TASK_ID}}.log" 2>&1
 export INDIR="{input_folder_base}/$SUBDIR"
 newgrp docker << EOF
 {command}
