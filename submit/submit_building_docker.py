@@ -4,6 +4,7 @@ from tqdm import tqdm
 
 
 INPUT_SMI_NAME = "input.smi"
+MAX_PER_DIR = 100
 
 
 SGE_TEMPLATE = """#!/bin/bash
@@ -15,7 +16,9 @@ SGE_TEMPLATE = """#!/bin/bash
 #$ -l h_rt={h_rt}
 #$ -l mem_free=2.5G
 
-export INDIR="{input_folder}"
+TASK_ID=$SGE_TASK_ID
+{subdir_bash}
+export INDIR="{input_folder_base}/$SUBDIR"
 {command}
 """
 
@@ -27,7 +30,9 @@ SLURM_TEMPLATE = """#!/bin/bash
 
 TMPDIR=$(mktemp -d /scratch/${{USER}}/job_${{SLURM_JOB_ID}}_${{SLURM_ARRAY_TASK_ID}}_XXXXXX)
 trap "rm -rf $TMPDIR" EXIT
-export INDIR="{input_folder}"
+TASK_ID=$SLURM_ARRAY_TASK_ID
+{subdir_bash}
+export INDIR="{input_folder_base}/$SUBDIR"
 newgrp docker << EOF
 {command}
 EOF
@@ -38,12 +43,57 @@ APPTAINER_COMMAND = "apptainer exec --cleanenv --no-mount tmp --bind ${{INDIR}}:
 DOCKER_COMMAND = "docker run --network=none --rm -u $(id -u):$(id -g) -v ${{INDIR}}:/data -v ${{TMPDIR}}:/tmp {container_path_or_name} bash /dock/ligand/submit/build-docker.sh"
 
 
+def _num_levels(count):
+    """How many directory levels are needed for count bundles."""
+    levels = 1
+    capacity = MAX_PER_DIR
+    while capacity < count:
+        levels += 1
+        capacity *= MAX_PER_DIR
+    return levels
+
+
+def count_to_subdir(count, total_count):
+    """Convert 1-based count to a list of subdirectory components (0-based).
+    
+    Each level holds at most MAX_PER_DIR entries.
+    total_count determines the depth so all bundles use the same number of levels.
+    E.g. with MAX_PER_DIR=100, total_count=200: count=1 -> [0,0], count=101 -> [1,0]
+    """
+    levels = _num_levels(total_count)
+    idx = count - 1
+    parts = []
+    for _ in range(levels):
+        parts.append(idx % MAX_PER_DIR)
+        idx //= MAX_PER_DIR
+    parts.reverse()
+    return parts
+
+
+def generate_subdir_bash(count):
+    """Generate bash code that computes SUBDIR from TASK_ID for the needed depth.
+    
+    Mirrors count_to_subdir: converts (TASK_ID - 1) to base MAX_PER_DIR with
+    the right number of levels, then joins with '/'.
+    """
+    levels = _num_levels(count)
+    lines = [f"IDX=$(( TASK_ID - 1 ))"]
+    # Extract digits from least significant to most significant
+    for i in range(levels):
+        lines.append(f"PART_{i}=$(( IDX % {MAX_PER_DIR} ))")
+        if i < levels - 1:
+            lines.append(f"IDX=$(( IDX / {MAX_PER_DIR} ))")
+    # Build path from most significant to least significant
+    subdir_expr = "/".join(f"$PART_{i}" for i in range(levels - 1, -1, -1))
+    lines.append(f'SUBDIR="{subdir_expr}"')
+    return "\n".join(lines)
+
+
 def make_building_array_job(input_file, output_folder, bundle_size, minutes_per_mol, building_config_file,
                             array_job_name, skip_name_check, scheduler, container_software, container_path_or_name):
     all_ids = set()
-    count = 1
+    bundles = []
     buffer = []
-    os.makedirs(output_folder, exist_ok=True)
     with open(input_file) as f:
         for i,line in tqdm(enumerate(f), desc="Mols processed"):
             ll = line.split()
@@ -60,19 +110,22 @@ def make_building_array_job(input_file, output_folder, bundle_size, minutes_per_
                 all_ids.add(name)
             buffer.append((smiles, name))
             if len(buffer) == bundle_size:
-                output_one_list(buffer, count, output_folder)
-                count += 1
+                bundles.append(buffer)
                 buffer = []
     if buffer:
-        output_one_list(buffer, count, output_folder)
-    else:
-        count -= 1
+        bundles.append(buffer)
+
+    count = len(bundles)
     if count > 100000:
         raise ValueError(f"Too many molecules to build (array has {count} jobs, max is 100k). " +
                          "Increase bundle size or split the input file.")
     if count < 1000:
         print(f"WARNING: only {count} jobs in array. If you want your results fast, consider decreasing bundle size " +
               "to get more parallelization.")
+
+    os.makedirs(output_folder, exist_ok=True)
+    for i, bundle in enumerate(bundles, start=1):
+        output_one_list(bundle, i, count, output_folder)
 
     write_job_array_script(output_folder, count, bundle_size, minutes_per_mol, building_config_file, array_job_name, scheduler, container_software, container_path_or_name)
 
@@ -94,12 +147,16 @@ def write_job_array_script(output_folder, count, bundle_size, minutes_per_mol, b
             container_path_or_name=container_path_or_name
         )
 
+    input_folder_base = os.path.join(os.getcwd(), output_folder)
+    subdir_bash = generate_subdir_bash(count)
+
     if scheduler == "sge":
         script = SGE_TEMPLATE.format(
             log_folder=log_folder,
             count=count,
             h_rt=minutes_to_h_rt(minutes_per_mol * bundle_size),
-            input_folder=os.path.join(os.getcwd(),output_folder, "${SGE_TASK_ID}"),
+            input_folder_base=input_folder_base,
+            subdir_bash=subdir_bash,
             command=command,
         )
     elif scheduler == "slurm":
@@ -107,7 +164,8 @@ def write_job_array_script(output_folder, count, bundle_size, minutes_per_mol, b
             log_folder=log_folder,
             count=count,
             h_rt=minutes_to_h_rt(minutes_per_mol * bundle_size),
-            input_folder=os.path.join(os.getcwd(),output_folder, "${SLURM_ARRAY_TASK_ID}"),
+            input_folder_base=input_folder_base,
+            subdir_bash=subdir_bash,
             command=command,
         )
     else:
@@ -126,8 +184,9 @@ def minutes_to_h_rt(minutes):
     return f"{hours}:{remaining_minutes:02d}:00"
 
 
-def output_one_list(buffer, count, output_folder):
-    subfolder = os.path.join(output_folder, f"{count}")
+def output_one_list(buffer, count, total_count, output_folder):
+    parts = count_to_subdir(count, total_count)
+    subfolder = os.path.join(output_folder, *[str(p) for p in parts])
     os.makedirs(subfolder, exist_ok=True)
     with open(os.path.join(subfolder, INPUT_SMI_NAME), "w") as f:
         for smiles, name in buffer:
